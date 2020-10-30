@@ -62,9 +62,11 @@ function generateColor(milliSecondsUntilEvent) {
     } else {
         const remainingInterval = secondsUntilEvent / (MINUTE * 10);
         const maxRed = 200;
+        const minRed = 50;
         const maxGreen = 30;
-        const red = Math.floor(maxRed * (1 - Math.max(0, remainingInterval)));
+        const red = Math.min(200, (Math.floor(maxRed * (1 - Math.max(0, remainingInterval))) + minRed));
         const green = Math.max(0, Math.floor(maxGreen * remainingInterval));
+        console.log(red ,green)
         return [red, green, 0];
     }
 }
