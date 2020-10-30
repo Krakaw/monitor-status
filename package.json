@@ -1,0 +1,18 @@
+{
+  "name": "monitor-status-pi",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@octokit/rest": "^18.0.7",
+    "dotenv": "^8.2.0",
+    "glob": "^7.1.6",
+    "googleapis": "^39.2.0",
+    "node-fetch": "^2.6.1"
+  }
+}

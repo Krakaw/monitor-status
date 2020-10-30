@@ -1,0 +1,5 @@
+.idea
+.env
+.credentials.json
+.oauth_tokens.json
+node_modules/
