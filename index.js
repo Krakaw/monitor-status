@@ -88,8 +88,9 @@ async function setLed(index, r, g, b) {
             console.log('Invalid value index:', i, 'value: ', v);
         }
     })
-    const url = `${WEB_URL}/${index}/${r}/${g}/${b}/0`;
-    queue.push(url);
+    // const url = `${WEB_URL}/${index}/${r}/${g}/${b}/0`;
+    queue.push([index,r,g,b,0]);
+    // queue.push(url);
 }
 
 async function getCalendarEvents() {
@@ -172,13 +173,22 @@ async function pollQueue() {
         return
     }
     queueRunning = true;
+    const body = {};
     while (queue.length) {
-        const url = queue.shift();
-        try {
-            await fetch(url)
-        } catch (e) {
-            console.error(`Error in request to ${url}`, e)
-        }
+        const [index, ...ledValues] = queue.shift();
+        body[index] = ledValues;
+
+    }
+    try {
+        await fetch(WEB_URL, {
+            method: 'PATCH',
+            body,
+            headers: {
+                'content-type': 'application/json'
+            }
+        })
+    } catch (e) {
+        console.error(`Error in request to ${url}`, e)
     }
     queueRunning = false;
 }
