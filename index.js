@@ -92,7 +92,7 @@ async function setLed(index, r, g, b) {
     queue.push(url);
 }
 
-async function checkCalendarEvents() {
+async function getCalendarEvents() {
     let events = cache.get('events');
     if (!events) {
         console.log('No cache fetching dates', new Date())
@@ -100,6 +100,10 @@ async function checkCalendarEvents() {
         events.sort((a, b) => (new Date(a.start.dateTime)).getTime() - (new Date(b.start.dateTime)).getTime());
         cache.set('events', events);
     }
+    return events;
+}
+async function checkCalendarEvents() {
+    const events = await getCalendarEvents();
     const now = (new Date()).getTime();
     const dates = events.map(e => ({
         milliSecondsUntilEvent: new Date(e.start.dateTime || e.start.date).getTime() - now,
@@ -193,6 +197,13 @@ function main() {
     setInterval(pollQueue, 1000);
 }
 
-checkServers();
-checkCalendarEvents()
-main();
+const args = process.argv.slice(2);
+if (args.length) {
+    const webhook = require(args[0]);
+    getCalendarEvents().then(events => webhook(events)).catch(e => console.error(e));
+} else {
+    checkServers();
+    checkCalendarEvents()
+    main();
+}
+
