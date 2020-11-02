@@ -180,7 +180,6 @@ async function pollQueue() {
 
     }
     try {
-        console.log(WEB_URL, body);
         await fetch(WEB_URL, {
             method: 'PATCH',
             body: JSON.stringify({values: body}),
