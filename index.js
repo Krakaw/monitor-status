@@ -169,7 +169,7 @@ async function checkServers() {
 }
 
 async function pollQueue() {
-    if (queueRunning) {
+    if (queueRunning || !queue.length) {
         return
     }
     queueRunning = true;
@@ -180,9 +180,10 @@ async function pollQueue() {
 
     }
     try {
+        console.log(WEB_URL, body);
         await fetch(WEB_URL, {
             method: 'PATCH',
-            body,
+            body: JSON.stringify({values: body}),
             headers: {
                 'content-type': 'application/json'
             }
