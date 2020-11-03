@@ -209,7 +209,11 @@ function main() {
 
 const args = process.argv.slice(2);
 if (args.length) {
-    const webhook = require(args[0]);
+    const path = require('path');
+    const webhookPath = path.resolve('webhooks', args[0].replace(/webhooks\/?/, '').replace(/^\//, ''));
+    console.log('Loading webhook', webhookPath);
+    const webhook = require(webhookPath);
+
     getCalendarEvents().then(events => webhook(events)).catch(e => console.error(e));
 } else {
     checkServers();
