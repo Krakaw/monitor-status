@@ -43,7 +43,7 @@ function generateColor(milliSecondsUntilEvent) {
     }
     if (secondsUntilEvent >= HOUR) {
         const totalIntervalInSeconds = FETCH_EVENTS_IN_NEXT_X_HOURS * 60 * 60;
-        const remainingInterval = secondsUntilEvent /totalIntervalInSeconds;
+        const remainingInterval = secondsUntilEvent / totalIntervalInSeconds;
         const maxBlue = 50;
         const maxGreen = 200;
         const blue = Math.floor(maxBlue * remainingInterval);
@@ -51,7 +51,7 @@ function generateColor(milliSecondsUntilEvent) {
         const green = Math.floor(maxGreen * (1 - remainingInterval));
         return [0, green, blue];
     } else if (secondsUntilEvent > MINUTE * 10) {
-        const remainingInterval = secondsUntilEvent / HOUR ;
+        const remainingInterval = secondsUntilEvent / HOUR;
         const maxRed = 100;
         const maxGreen = 75;
         const minGreen = 20;
@@ -82,15 +82,13 @@ function getLed(index) {
     return START_LED + (index * INCREMENT_LED);
 }
 
-async function setLed(index, r, g, b) {
-    [r,g,b].forEach((v, i) => {
+async function setLed(index, r, g, b, name = '') {
+    [r, g, b].forEach((v, i) => {
         if (v > 255 || v < 0) {
             console.log('Invalid value index:', i, 'value: ', v);
         }
     })
-    // const url = `${WEB_URL}/${index}/${r}/${g}/${b}/0`;
-    queue.push([index,r,g,b,0]);
-    // queue.push(url);
+    queue.push({index, rgb: [r, g, b, 0], name});
 }
 
 async function getCalendarEvents() {
@@ -103,6 +101,7 @@ async function getCalendarEvents() {
     }
     return events;
 }
+
 async function checkCalendarEvents() {
     const events = await getCalendarEvents();
     const now = (new Date()).getTime();
@@ -141,24 +140,24 @@ async function checkCalendarEvents() {
     setLed(getLed(INDIVIDUAL_EVENT_COLUMN_COUNT), ...getPendingColor(pendingCounter))
 }
 
-async function checkServer({url, checkParams, resultLedValues}) {
+async function checkServer({url, checkParams, resultLedValues, name}) {
     let success = false;
     try {
         let result;
         if (typeof url === 'string') {
             result = await fetch(url);
 
-        }  else {
-           result = await url();
+        } else {
+            result = await url();
         }
         const body = checkParams.type === 'json' ? await result.json() : await result.text();
-        success = (checkParams.type === 'json') ? (body[checkParams.key] === checkParams.value) :  (body.indexOf(checkParams.value) > -1);
+        success = (checkParams.type === 'json') ? (body[checkParams.key] === checkParams.value) : (body.indexOf(checkParams.value) > -1);
 
     } catch (e) {
         console.error(url, e);
         success = false;
     }
-    setLed(resultLedValues[success ? 'success' : 'error'].led, ...resultLedValues[success ? 'success' : 'error'].colors)
+    setLed(resultLedValues[success ? 'success' : 'error'].led, ...resultLedValues[success ? 'success' : 'error'].colors, name)
     return success;
 }
 
@@ -175,8 +174,8 @@ async function pollQueue() {
     queueRunning = true;
     const body = {};
     while (queue.length) {
-        const [index, ...ledValues] = queue.shift();
-        body[index] = ledValues;
+        const {index, rgb, name} = queue.shift();
+        body[index] = {rgb, name};
 
     }
     try {
