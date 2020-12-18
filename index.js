@@ -143,21 +143,26 @@ async function checkCalendarEvents() {
 async function checkServer({url, checkParams, resultLedValues, name}) {
     let success = false;
     try {
-        let result;
-        if (typeof url === 'string') {
-            result = await fetch(url);
+        let  ledIndex, colors;
 
+        if (typeof url === 'string') {
+            const result = await fetch(url);
+            const body = checkParams.type === 'json' ? await result.json() : await result.text();
+            success = (checkParams.type === 'json') ? (body[checkParams.key] === checkParams.value) : (body.indexOf(checkParams.value) > -1);
+            ledIndex = resultLedValues[success ? 'success' : 'error'].led;
+            colors = resultLedValues[success ? 'success' : 'error'].colors;
         } else {
-            result = await url();
+            const result = await url();
+            ledIndex = result.ledIndex;
+            colors = result.colors;
         }
-        const body = checkParams.type === 'json' ? await result.json() : await result.text();
-        success = (checkParams.type === 'json') ? (body[checkParams.key] === checkParams.value) : (body.indexOf(checkParams.value) > -1);
+        setLed(ledIndex, ...colors, name)
 
     } catch (e) {
         console.error(url, e);
         success = false;
     }
-    setLed(resultLedValues[success ? 'success' : 'error'].led, ...resultLedValues[success ? 'success' : 'error'].colors, name)
+
     return success;
 }
 
