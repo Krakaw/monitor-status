@@ -192,7 +192,7 @@ async function pollQueue() {
             }
         })
     } catch (e) {
-        console.error(`Error in request to ${url}`, e)
+        console.error(`Error in request to ${WEB_URL}`, e)
     }
     queueRunning = false;
 }
