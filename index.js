@@ -5,6 +5,7 @@ const cache = require('./cache');
 const calendar = require('./calendar')
 const serverChecks = require('./servers');
 
+const STATUS_LED = parseInt(process.env.STATUS_LED) || 0;
 const FETCH_EVENTS_IN_NEXT_X_HOURS = process.env.FETCH_EVENTS_IN_NEXT_X_HOURS || 12;
 const START_LED = parseInt(process.env.START_LED) || 3;
 const INCREMENT_LED = parseInt(process.env.INCREMENT_LED) || 8;
@@ -198,14 +199,27 @@ async function pollQueue() {
 }
 
 function main() {
+    const statusRgb = [0,0,0];
     setInterval(() => {
         checkServers().then(r => {
+            statusRgb[0] = 0;
+        }).catch(e => {
+            console.error(e);
+            statusRgb[0] = 255;
         })
     }, 30000)
 
     setInterval(() => {
         checkCalendarEvents().then(r => {
-        }).catch(e => console.error(e));
+            statusRgb[2] = 0;
+        }).catch(e => {
+            console.error(e)
+            statusRgb[2] = 255;
+
+        }).finally(() => {
+            const errorMessage = `${statusRgb[0] > 0 && 'Server Status Error'} ${statusRgb[2] > 0 && 'Calendar Check Error'}`
+            setLed(STATUS_LED, ...statusRgb, errorMessage)
+        });
     }, 15000)
 
     setInterval(pollQueue, 1000);
