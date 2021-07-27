@@ -4,6 +4,7 @@ const fetch = require('node-fetch');
 const cache = require('./cache');
 const calendar = require('./calendar')
 const serverChecks = require('./servers');
+const {exec} = require('child_process');
 
 const STATUS_LED = parseInt(process.env.STATUS_LED) || 0;
 const FETCH_EVENTS_IN_NEXT_X_HOURS = process.env.FETCH_EVENTS_IN_NEXT_X_HOURS || 12;
@@ -12,11 +13,13 @@ const INCREMENT_LED = parseInt(process.env.INCREMENT_LED) || 8;
 const INDIVIDUAL_EVENT_COLUMN_COUNT = parseInt(process.env.INDIVIDUAL_EVENT_COLUMN_COUNT) || 3;
 const MAX_PENDING_EVENTS = parseInt(process.env.MAX_PENDING_EVENTS) || 5;
 const WEB_URL = process.env.WEB_URL;
+const PICO_DEV = process.env.PICO_DEV;
 const HOUR = 60 * 60;
 const MINUTE = 60;
+const STARTING_IN_MINUTES = process.env.STARTING_IN_MINUTES || 5;
 const queue = [];
 let queueRunning = false;
-
+let picoCache = '';
 const colors = {
     off: [0, 0, 0],
     imminentStart: [255, 0, 0],
@@ -106,10 +109,32 @@ async function getCalendarEvents() {
 async function checkCalendarEvents() {
     const events = await getCalendarEvents();
     const now = (new Date()).getTime();
-    const dates = events.map(e => ({
-        milliSecondsUntilEvent: new Date(e.start.dateTime || e.start.date).getTime() - now,
-        end: new Date(e.end.dateTime).getTime()
-    })).filter(d => d.end > new Date().getTime());
+    const dates = events.map(e => {
+        let startDate = new Date(e.start.dateTime || e.start.date);
+        let hours = startDate.getHours();
+        hours = hours >= 10 ? hours : `0${hours}`;
+        let minutes = startDate.getMinutes();
+        minutes = minutes >= 10 ? minutes : `0${minutes}`;
+        let startTimeString = hours + ':' + minutes;
+        return {
+            startDate,
+            milliSecondsUntilEvent: startDate.getTime() - now,
+            end: new Date(e.end.dateTime).getTime(),
+            summary: e.summary,
+            start: startTimeString
+        }
+    }).filter(d => d.end > new Date().getTime());
+
+    const updatePicoCmd = dates.map(d => {
+        const startingInXMinutes = d.startDate.getTime() < new Date().getTime() + (1000 * 60 * STARTING_IN_MINUTES);
+        const startTime = `${startingInXMinutes ? '|     ':''}${d.start}${startingInXMinutes ? '     ':' '}`
+        return `${startTime}${d.summary}${startingInXMinutes ? '-' : ''}`;
+    }).join('|');
+    if (PICO_DEV && picoCache !== updatePicoCmd) {
+        picoCache = updatePicoCmd;
+        console.log(updatePicoCmd)
+        exec(`echo "${updatePicoCmd}" > ${PICO_DEV}`);
+    }
 
     //Remove any events that have ended (but are still cached)
     let pendingCounter = 0;
@@ -144,7 +169,7 @@ async function checkCalendarEvents() {
 async function checkServer({url, checkParams, resultLedValues, name}) {
     let success = false;
     try {
-        let  ledIndex, colors;
+        let ledIndex, colors;
 
         if (typeof url === 'string') {
             const result = await fetch(url);
@@ -184,22 +209,24 @@ async function pollQueue() {
         body[index] = {rgb, name};
 
     }
-    try {
-        await fetch(WEB_URL, {
-            method: 'PATCH',
-            body: JSON.stringify({values: body}),
-            headers: {
-                'content-type': 'application/json'
-            }
-        })
-    } catch (e) {
-        console.error(`Error in request to ${WEB_URL}`, e)
+    if (WEB_URL) {
+        try {
+            await fetch(WEB_URL, {
+                method: 'PATCH',
+                body: JSON.stringify({values: body}),
+                headers: {
+                    'content-type': 'application/json'
+                }
+            })
+        } catch (e) {
+            console.error(`Error in request to ${WEB_URL}`, e)
+        }
     }
     queueRunning = false;
 }
 
 function main() {
-    const statusRgb = [0,0,0];
+    const statusRgb = [0, 0, 0];
     setInterval(() => {
         checkServers().then(r => {
             statusRgb[0] = 0;
