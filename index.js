@@ -115,25 +115,41 @@ async function checkCalendarEvents() {
         hours = hours >= 10 ? hours : `0${hours}`;
         let minutes = startDate.getMinutes();
         minutes = minutes >= 10 ? minutes : `0${minutes}`;
-        let startTimeString = hours + ':' + minutes;
+        const startTimeString = hours + ':' + minutes;
+        const milliSecondsUntilEvent = startDate.getTime() - now;
+        const endMillis = new Date(e.end.dateTime).getTime();
+        const totalSeconds = (endMillis - startDate.getTime()) / 1000;
         return {
             startDate,
-            milliSecondsUntilEvent: startDate.getTime() - now,
-            end: new Date(e.end.dateTime).getTime(),
+            milliSecondsUntilEvent,
+            end: endMillis,
             summary: e.summary,
-            start: startTimeString
+            startTime: startTimeString,
+            startingSoon: milliSecondsUntilEvent <= 1000 * 60 * STARTING_IN_MINUTES,
+            totalSeconds,
         }
     }).filter(d => d.end > new Date().getTime());
 
-    const updatePicoCmd = dates.map(d => {
-        const startingInXMinutes = d.startDate.getTime() < new Date().getTime() + (1000 * 60 * STARTING_IN_MINUTES);
-        const startTime = `${startingInXMinutes ? '|     ':''}${d.start}${startingInXMinutes ? '     ':' '}`
-        return `${startTime}${d.summary}${startingInXMinutes ? '-' : ''}`;
-    }).join('|');
+    const updatePicoCmd = JSON.stringify(dates.map(d => {
+        delete d.milliSecondsUntilEvent;
+        return d
+    }));
+    if (PICO_DEV && picoCache === '') {
+        //Set the time
+        const now = new Date();
+        const Y = now.getFullYear();
+        const M = now.getMonth() + 7;
+        const D = now.getDate();
+        const h = now.getHours();
+        const m = now.getMinutes();
+        const s = now.getSeconds();
+        const timeData = {"timeSync": `${Y} ${M} ${D} ${h} ${m} ${s}`};
+        exec(`echo '${JSON.stringify(timeData)} ' > ${PICO_DEV}`);
+    }
     if (PICO_DEV && picoCache !== updatePicoCmd) {
         picoCache = updatePicoCmd;
         console.log(updatePicoCmd)
-        exec(`echo "${updatePicoCmd}" > ${PICO_DEV}`);
+        exec(`echo '${updatePicoCmd}' > ${PICO_DEV}`);
     }
 
     //Remove any events that have ended (but are still cached)
