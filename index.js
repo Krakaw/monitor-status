@@ -16,7 +16,7 @@ const WEB_URL = process.env.WEB_URL;
 const PICO_DEV = process.env.PICO_DEV;
 const HOUR = 60 * 60;
 const MINUTE = 60;
-const STARTING_IN_MINUTES = process.env.STARTING_IN_MINUTES || 5;
+const STARTING_IN_MINUTES = process.env.STARTING_IN_MINUTES || 10;
 const queue = [];
 let queueRunning = false;
 let picoCache = '';
@@ -86,6 +86,11 @@ function getLed(index) {
     return START_LED + (index * INCREMENT_LED);
 }
 
+function getMsSinceMidnight(d) {
+    const e = new Date(d);
+    return d - e.setHours(0, 0, 0, 0);
+}
+
 async function setLed(index, r, g, b, name = '') {
     [r, g, b].forEach((v, i) => {
         if (v > 255 || v < 0) {
@@ -119,12 +124,14 @@ async function checkCalendarEvents() {
         const milliSecondsUntilEvent = startDate.getTime() - now;
         const endMillis = new Date(e.end.dateTime).getTime();
         const totalSeconds = (endMillis - startDate.getTime()) / 1000;
+
         return {
             startDate,
             milliSecondsUntilEvent,
             end: endMillis,
             summary: e.summary,
             startTime: startTimeString,
+            startSecsFromMidnight: getMsSinceMidnight(startDate) / 1000,
             startingSoon: milliSecondsUntilEvent <= 1000 * 60 * STARTING_IN_MINUTES,
             totalSeconds,
         }
