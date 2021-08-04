@@ -69,9 +69,9 @@ function getAccessToken(oAuth2Client, callback) {
 
 
 
-async function listEventsAsync(auth, timeIntervalInHours) {
+async function listEventsAsync(auth, timeIntervalInHours, timeMin) {
     const calendar = google.calendar({version: 'v3', auth: auth});
-    const now = new Date();
+    const now = timeMin || new Date();
     const res = await calendar.events.list({
         calendarId: 'primary',
         timeMin: now.toISOString(),
