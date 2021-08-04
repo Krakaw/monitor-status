@@ -138,8 +138,9 @@ async function checkCalendarEvents() {
     }).filter(d => d.end > new Date().getTime());
 
     const updatePicoCmd = JSON.stringify(dates.map(d => {
-        delete d.milliSecondsUntilEvent;
-        return d
+        const result = {...d};
+        delete result.milliSecondsUntilEvent;
+        return result
     }));
     if (PICO_DEV && picoCache === '') {
         //Set the time
@@ -230,7 +231,6 @@ async function pollQueue() {
     while (queue.length) {
         const {index, rgb, name} = queue.shift();
         body[index] = {rgb, name};
-
     }
     if (WEB_URL) {
         try {
