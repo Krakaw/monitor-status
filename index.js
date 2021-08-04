@@ -142,23 +142,27 @@ async function checkCalendarEvents() {
         result.summary = result.summary.replace(/[^\x00-\x7F]+/, '').trim()
         return result
     }));
-    if (PICO_DEV && picoCache === '') {
-        //Set the time
-        const now = new Date();
-        const Y = now.getFullYear();
-        const M = now.getMonth() + 7;
-        const D = now.getDate();
-        const h = now.getHours();
-        const m = now.getMinutes();
-        const s = now.getSeconds();
-        const timeData = {"timeSync": `${Y} ${M} ${D} ${h} ${m} ${s}`};
-        exec(`echo '${JSON.stringify(timeData)} ' > ${PICO_DEV}`);
+    if (PICO_DEV) {
+        if (picoCache === '') {
+            //Set the time
+            const now = new Date();
+            const Y = now.getFullYear();
+            const M = now.getMonth() + 7;
+            const D = now.getDate();
+            const h = now.getHours();
+            const m = now.getMinutes();
+            const s = now.getSeconds();
+            const timeData = {"timeSync": `${Y} ${M} ${D} ${h} ${m} ${s}`};
+            console.log('Setting pico time to', timeData)
+            exec(`echo '${JSON.stringify(timeData)} ' > ${PICO_DEV}`);
+        }
+        if (picoCache !== updatePicoCmd) {
+            picoCache = updatePicoCmd;
+            console.log("Sending to pico: ", updatePicoCmd)
+            exec(`echo '${updatePicoCmd}' > ${PICO_DEV}`);
+        }
     }
-    if (PICO_DEV && picoCache !== updatePicoCmd) {
-        picoCache = updatePicoCmd;
-        console.log(updatePicoCmd)
-        exec(`echo '${updatePicoCmd}' > ${PICO_DEV}`);
-    }
+
 
     //Remove any events that have ended (but are still cached)
     let pendingCounter = 0;
