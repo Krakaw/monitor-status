@@ -139,7 +139,7 @@ async function checkCalendarEvents() {
 
     const updatePicoCmd = JSON.stringify(dates.map(d => {
         const result = {...d};
-        delete result.milliSecondsUntilEvent;
+        result.summary = result.summary.replace(/[^\x00-\x7F]+/, '')
         return result
     }));
     if (PICO_DEV && picoCache === '') {
