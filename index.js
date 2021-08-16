@@ -196,13 +196,17 @@ async function checkCalendarEvents() {
     setLed(getLed(INDIVIDUAL_EVENT_COLUMN_COUNT), ...getPendingColor(pendingCounter))
 }
 
-async function checkServer({url, checkParams, resultLedValues, name}) {
+async function checkServer({url, headers, checkParams, resultLedValues, name}) {
     let success = false;
     try {
         let ledIndex, colors;
 
         if (typeof url === 'string') {
-            const result = await fetch(url);
+            const result = await fetch(url, {
+                headers: {
+                    ...headers
+                }
+            });
             const body = checkParams.type === 'json' ? await result.json() : await result.text();
             success = (checkParams.type === 'json') ? (body[checkParams.key] === checkParams.value) : (body.indexOf(checkParams.value) > -1);
             ledIndex = resultLedValues[success ? 'success' : 'error'].led;
@@ -244,7 +248,8 @@ async function pollQueue() {
                 method: 'PATCH',
                 body: JSON.stringify({values: body}),
                 headers: {
-                    'content-type': 'application/json'
+                    'content-type': 'application/json',
+                    'user-agent': 'YatBot.rs'
                 }
             })
         } catch (e) {
