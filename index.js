@@ -91,6 +91,16 @@ function getMsSinceMidnight(d) {
     return d - e.setHours(0, 0, 0, 0);
 }
 
+function getTimeString() {
+    const now = new Date();
+    const Y = now.getFullYear();
+    const M = now.getMonth() + 7;
+    const D = now.getDate();
+    const h = now.getHours();
+    const m = now.getMinutes();
+    const s = now.getSeconds();
+    return `${Y} ${M} ${D} ${h} ${m} ${s}`;
+}
 async function setLed(index, r, g, b, name = '') {
     [r, g, b].forEach((v, i) => {
         if (v > 255 || v < 0) {
@@ -137,31 +147,23 @@ async function checkCalendarEvents() {
         }
     }).filter(d => d.end > new Date().getTime());
 
-    const updatePicoCmd = JSON.stringify(dates.map(d => {
-        const result = {...d};
-        result.summary = result.summary.replace(/[^\x00-\x7F]+/, '').trim()
-        // Must remove this so it stops changing on every request
-        delete result.milliSecondsUntilEvent;
-        return result
-    }));
+
     if (PICO_DEV) {
-        if (picoCache === '') {
-            //Set the time
-            const now = new Date();
-            const Y = now.getFullYear();
-            const M = now.getMonth() + 7;
-            const D = now.getDate();
-            const h = now.getHours();
-            const m = now.getMinutes();
-            const s = now.getSeconds();
-            const timeData = {"timeSync": `${Y} ${M} ${D} ${h} ${m} ${s}`};
-            console.log('Setting pico time to', timeData)
-            exec(`echo '${JSON.stringify(timeData)} ' > ${PICO_DEV}`);
-        }
+        const calEventsArray = dates.map(d => {
+            const result = {...d};
+            result.summary = result.summary.replace(/[^\x00-\x7F]+/, '').trim()
+            // Must remove this so it stops changing on every request
+            delete result.milliSecondsUntilEvent;
+            return result
+        });
+
+        const updatePicoCmd = JSON.stringify(calEventsArray);
+
         if (picoCache !== updatePicoCmd) {
             picoCache = updatePicoCmd;
-            console.log("Sending to pico: ", updatePicoCmd)
-            exec(`echo '${updatePicoCmd}' > ${PICO_DEV}`);
+            const data = JSON.stringify({"timeSync": getTimeString(), dates: calEventsArray});
+            console.log("Sending to pico: ", data)
+            exec(`echo '${data}' > ${PICO_DEV}`);
         }
     }
 
