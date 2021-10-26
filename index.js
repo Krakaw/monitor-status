@@ -6,8 +6,8 @@ const calendar = require('./calendar')
 const serverChecks = require('./servers');
 const {exec} = require('child_process');
 
+const FETCH_EVENTS_IN_NEXT_X_HOURS = 24;
 const STATUS_LED = parseInt(process.env.STATUS_LED) || 0;
-const FETCH_EVENTS_IN_NEXT_X_HOURS = process.env.FETCH_EVENTS_IN_NEXT_X_HOURS || 12;
 const START_LED = parseInt(process.env.START_LED) || 3;
 const INCREMENT_LED = parseInt(process.env.INCREMENT_LED) || 8;
 const INDIVIDUAL_EVENT_COLUMN_COUNT = parseInt(process.env.INDIVIDUAL_EVENT_COLUMN_COUNT) || 3;
@@ -114,7 +114,7 @@ async function getCalendarEvents() {
     let events = cache.get('events');
     if (!events) {
         console.log('No cache fetching dates', new Date())
-        events = await calendar(FETCH_EVENTS_IN_NEXT_X_HOURS);
+        events = await calendar();
         events.sort((a, b) => (new Date(a.start.dateTime)).getTime() - (new Date(b.start.dateTime)).getTime());
         cache.set('events', events);
     }

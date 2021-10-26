@@ -69,13 +69,17 @@ function getAccessToken(oAuth2Client, callback) {
 
 
 
-async function listEventsAsync(auth, timeIntervalInHours, timeMin) {
+async function listEventsAsync(auth, daysAgo = 0) {
     const calendar = google.calendar({version: 'v3', auth: auth});
-    const now = timeMin || new Date();
+    const startOfDay = new Date();
+    startOfDay.setDate(startOfDay.getDate() - daysAgo);
+    startOfDay.setHours(0,0,0,0);
+    const endOfDay = new Date(startOfDay);
+    endOfDay.setHours(23, 59,59,999)
     const res = await calendar.events.list({
         calendarId: 'primary',
-        timeMin: now.toISOString(),
-        timeMax: (new Date(now.getTime() + timeIntervalInHours * 60 * 60 * 1000)).toISOString(),
+        timeMin: startOfDay.toISOString(),
+        timeMax: endOfDay.toISOString(),
         maxResults: 100,
         singleEvents: true,
         orderBy: 'startTime',
@@ -85,8 +89,8 @@ async function listEventsAsync(auth, timeIntervalInHours, timeMin) {
 
 }
 
-module.exports = async function(timeIntervalInHours = 12) {
+module.exports = async function(daysAgo = 0) {
     const content = fs.readFileSync(CREDENTIALS_PATH, 'utf-8');
     const auth = await authorize(JSON.parse(content), () => {});
-    return await listEventsAsync(auth, timeIntervalInHours);
+    return await listEventsAsync(auth, daysAgo);
 }
