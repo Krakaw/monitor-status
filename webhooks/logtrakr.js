@@ -47,10 +47,14 @@ module.exports = async (events = []) => {
       if (!eventsText.length) {
         return;
       }
-      note.replace(/^Total Meeting Time: .*$/gm, "");
-      const newNote = `${note ? note + "\n" : ""}${eventsText.join(
+      let newNote = note.replace(
+        /Total Meeting Time: \d{2}:\d{2}:\d{2}\n*/g,
+        ""
+      );
+      newNote = `${newNote ? newNote + "\n" : ""}${eventsText.join(
         "\n"
       )}\nTotal Meeting Time: ${secondsInMeetings.toHHMMSS()}`;
+
       const updateResult = await fetch(
         `https://app.logtrakr.com/api/v1/user_times/edit/${id}`,
         {
