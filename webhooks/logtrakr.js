@@ -47,7 +47,7 @@ module.exports = async (events = []) => {
       if (!eventsText.length) {
         return;
       }
-      let newNote = note.replace(
+      let newNote = (note || "").replace(
         /Total Meeting Time: \d{2}:\d{2}:\d{2}\n*/g,
         ""
       );
