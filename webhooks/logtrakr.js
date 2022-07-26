@@ -1,4 +1,11 @@
 const fetch = require("node-fetch");
+const STATUS = {
+  accepted: "a",
+  needsAction: "p",
+  tentative: "m",
+  declined: "d"
+}
+
 module.exports = async (events = []) => {
   try {
     const token = process.env.LOGTRAKR_TOKEN;
@@ -22,39 +29,44 @@ module.exports = async (events = []) => {
       const activeTime = activeJob.job.active_times.shift();
       const { id, note = "" } = activeTime;
       let secondsInMeetings = 0;
-      const eventsText = events
-        .map((e) => {
-          let total = 0;
-          if (e.start.dateTime && e.end.dateTime) {
-            const start = new Date(e.start.dateTime);
-            const end = new Date(e.end.dateTime);
-            total = (end.getTime() - start.getTime()) / 1000;
-            secondsInMeetings += total;
-          }
-          const attending =
-            ((e.attendees || []).find((a) => a.self) || {}).responseStatus ===
-            "accepted";
-          return `[${attending ? "x" : " "}] ${e.summary
-            .replace(/[^\x00-\x7F]+/g, "")
-            .trim()} - ${
-            e.start.dateTime || e.start.date
-          } (${total.toHHMMSS()})`;
+      const eventsList = events
+          .map((e) => {
+            let total = 0;
+            if (e.start.dateTime && e.end.dateTime) {
+              const start = new Date(e.start.dateTime);
+              const end = new Date(e.end.dateTime);
+              total = (end.getTime() - start.getTime()) / 1000;
+              secondsInMeetings += total;
+            }
+            const status =
+               STATUS[((e.attendees || []).find((a) => a.self) || {}).responseStatus || 'p'];
+            const note = `${e.summary
+                .replace(/[^\x00-\x7F]+/g, "")
+                .trim()} - ${
+                e.start.dateTime || e.start.date
+            } (${total.toHHMMSS()})`;
+            return {
+              status,
+                note
+            }
+          });
+      let editedNote = note || '';
+
+      let eventsText = [];
+      eventsList.forEach(({status, note} )=> {
+          const re = new RegExp(`^\\[.+\\] \\b${escapeRegExp(note)}\n`, 'gm');
+            editedNote = editedNote.replace(re, '');
+            eventsText.push(`[${status}] ${note}`);
         })
-        .filter((t) => {
-          return (note || "").indexOf(t.replace(/^\[[x ]+\] /, "")) === -1;
-        });
 
       if (!eventsText.length) {
         return;
       }
-      let newNote = (note || "").replace(
+      let newNote = editedNote.replace(
         /Total Meeting Time: \d{2}:\d{2}:\d{2}\n*/g,
         ""
-      );
-      newNote = `${newNote ? newNote + "\n" : ""}${eventsText.join(
-        "\n"
-      )}\nTotal Meeting Time: ${secondsInMeetings.toHHMMSS()}`;
-
+      ).replace(/^$\n/gm, "");
+      newNote = `${newNote ? newNote + "\n" : ""}${eventsText.join("\n")}\nTotal Meeting Time: ${secondsInMeetings.toHHMMSS()}`;
       const updateResult = await fetch(
         `https://app.logtrakr.com/api/v1/user_times/edit/${id}`,
         {
@@ -68,6 +80,10 @@ module.exports = async (events = []) => {
     console.error("Logtrakr Error", e);
   }
 };
+
+function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+}
 
 Number.prototype.toHHMMSS = function () {
   var sec_num = parseInt(this, 10);
