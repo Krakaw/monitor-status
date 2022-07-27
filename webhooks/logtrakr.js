@@ -3,7 +3,8 @@ const STATUS = {
     accepted: "a",
     needsAction: "p",
     tentative: "m",
-    declined: "d"
+    declined: "d",
+    creator: "c"
 }
 
 module.exports = async (events = []) => {
@@ -38,8 +39,9 @@ module.exports = async (events = []) => {
                         total = (end.getTime() - start.getTime()) / 1000;
                         secondsInMeetings += total;
                     }
+
                     const status =
-                        STATUS[((e.attendees || []).find((a) => a.self) || {}).responseStatus || 'p'];
+                        STATUS[e.creator.self ? 'creator' : ((e.attendees || []).find((a) => a.self) || {}).responseStatus || 'accepted'];
                     const note = `${e.summary
                         .replace(/[^\x00-\x7F]+/g, "")
                         .trim()} - ${
@@ -51,7 +53,6 @@ module.exports = async (events = []) => {
                     }
                 });
             let editedNote = note || '';
-
             let eventsText = [];
             eventsList.forEach(({status, note}) => {
                 const re = new RegExp(`^\\[.+\\] \\b${escapeRegExp(note)}\n`, 'gm');
