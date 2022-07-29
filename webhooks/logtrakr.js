@@ -30,6 +30,7 @@ module.exports = async (events = []) => {
             const activeTime = activeJob.job.active_times.shift();
             const {id, note = ""} = activeTime;
             let secondsInMeetings = 0;
+            let today = '';
             const eventsList = events
                 .map((e) => {
                     let total = 0;
@@ -39,6 +40,10 @@ module.exports = async (events = []) => {
                         total = (end.getTime() - start.getTime()) / 1000;
                         secondsInMeetings += total;
                     }
+                    if (!today) {
+                        today = (e.start.dateTime || e.start.date).split('T').shift();
+                    }
+
 
                     const status =
                         STATUS[e.creator.self ? 'creator' : ((e.attendees || []).find((a) => a.self) || {}).responseStatus || 'accepted'];
@@ -52,6 +57,7 @@ module.exports = async (events = []) => {
                         note
                     }
                 });
+
             let editedNote = note || '';
             let eventsText = [];
             eventsList.forEach(({status, note}) => {
@@ -63,11 +69,12 @@ module.exports = async (events = []) => {
             if (!eventsText.length) {
                 return;
             }
+            let totalMeetingTimeRegex = new RegExp(`Total Meeting Time \\(${escapeRegExp(today)}\\): \\d{2}:\\d{2}:\\d{2}\\n*`, 'g')
             let newNote = editedNote.replace(
-                /Total Meeting Time: \d{2}:\d{2}:\d{2}\n*/g,
+                totalMeetingTimeRegex,
                 ""
             ).replace(/^$\n/gm, "");
-            newNote = `${newNote ? newNote + "\n" : ""}${eventsText.join("\n")}\nTotal Meeting Time: ${secondsInMeetings.toHHMMSS()}`;
+            newNote = `${newNote ? newNote + "\n" : ""}${eventsText.join("\n")}\nTotal Meeting Time (${today}): ${secondsInMeetings.toHHMMSS()}`;
             const updateResult = await fetch(
                 `https://app.logtrakr.com/api/v1/user_times/edit/${id}`,
                 {
