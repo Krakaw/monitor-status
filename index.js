@@ -114,11 +114,11 @@ async function setLed(index, r, g, b, name = "") {
   queue.push({ index, rgb: [r, g, b, 0], name });
 }
 
-async function getCalendarEvents() {
+async function getCalendarEvents(daysAgo = 0) {
   let events = cache.get("events");
   if (!events) {
     console.log("No cache fetching dates", new Date());
-    events = await calendar();
+    events = await calendar(daysAgo);
     events.sort(
       (a, b) =>
         new Date(a.start.dateTime).getTime() -
@@ -327,10 +327,11 @@ if (args.length) {
     "webhooks",
     args[0].replace(/webhooks\/?/, "").replace(/^\//, "")
   );
-  console.log("Loading webhook", webhookPath);
+  const daysAgo = parseInt(args[1] || '0');
+  console.log("Loading webhook", webhookPath, "for the last", daysAgo, "days");
   const webhook = require(webhookPath);
 
-  getCalendarEvents()
+  getCalendarEvents(daysAgo)
     .then((events) => webhook(events))
     .catch((e) => console.error(e));
 } else {
