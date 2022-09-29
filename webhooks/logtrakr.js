@@ -6,6 +6,7 @@ const STATUS = {
     declined: "d",
     creator: "c"
 }
+const IGNORE_MEETING_SUMMARY = 'busy';
 
 module.exports = async (events = []) => {
     try {
@@ -32,6 +33,9 @@ module.exports = async (events = []) => {
             let secondsInMeetings = 0;
             let today = '';
             const eventsList = events
+                .filter(e => {
+                    return e.summary.toLowerCase().trim() !== IGNORE_MEETING_SUMMARY.toLowerCase();
+                })
                 .map((e) => {
                     let total = 0;
                     if (e.start.dateTime && e.end.dateTime) {
@@ -75,6 +79,8 @@ module.exports = async (events = []) => {
                 ""
             ).replace(/^$\n/gm, "");
             newNote = `${newNote ? newNote + "\n" : ""}${eventsText.join("\n")}\nTotal Meeting Time (${today}): ${secondsInMeetings.toHHMMSS()}`;
+            console.log(newNote)
+            return;
             const updateResult = await fetch(
                 `https://app.logtrakr.com/api/v1/user_times/edit/${id}`,
                 {
