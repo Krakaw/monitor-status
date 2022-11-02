@@ -34,7 +34,7 @@ module.exports = async (events = []) => {
             let today = '';
             const eventsList = events
                 .filter(e => {
-                    return e.summary.toLowerCase().trim() !== IGNORE_MEETING_SUMMARY.toLowerCase();
+                    return e.summary && e.summary.toLowerCase().trim() !== IGNORE_MEETING_SUMMARY.toLowerCase();
                 })
                 .map((e) => {
                     let total = 0;
