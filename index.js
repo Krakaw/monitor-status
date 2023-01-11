@@ -33,7 +33,7 @@ const colors = {
  * @param milliSecondsUntilEvent
  * @returns {number[]}
  */
-function generateColor(milliSecondsUntilEvent) {
+function generateColor(milliSecondsUntilEvent, status = 'accepted') {
   if (milliSecondsUntilEvent === null) {
     return colors.off;
   }
@@ -46,6 +46,14 @@ function generateColor(milliSecondsUntilEvent) {
   if (secondsUntilEvent <= 0) {
     return colors.started;
   }
+  if (status === 'declined') {
+    // Always return pink if declined
+    return [205,92,92];
+  }
+  // else if (status === 'tentative' || status === 'needsAction') {
+  //   // Always return yellow if tentative
+  //   return [107,142,35];
+  // }
   if (secondsUntilEvent >= HOUR) {
     const totalIntervalInSeconds = FETCH_EVENTS_IN_NEXT_X_HOURS * 60 * 60;
     const remainingInterval = secondsUntilEvent / totalIntervalInSeconds;
@@ -143,6 +151,7 @@ async function checkCalendarEvents() {
       const milliSecondsUntilEvent = startDate.getTime() - now;
       const endMillis = new Date(e.end.dateTime).getTime();
       const totalSeconds = (endMillis - startDate.getTime()) / 1000;
+      const status = ((e.attendees || []).find((a) => a.self) || {}).responseStatus || 'accepted';
 
       return {
         startDate,
@@ -153,6 +162,7 @@ async function checkCalendarEvents() {
         startSecsFromMidnight: getMsSinceMidnight(startDate) / 1000,
         startingSoon: milliSecondsUntilEvent <= 1000 * 60 * STARTING_IN_MINUTES,
         totalSeconds,
+        status
       };
     })
     .filter((d) => d.end > new Date().getTime());
@@ -186,7 +196,7 @@ async function checkCalendarEvents() {
   }
   let displayColumnCount = INDIVIDUAL_EVENT_COLUMN_COUNT;
 
-  dates.forEach(({ milliSecondsUntilEvent, end }, i) => {
+  dates.forEach(({ milliSecondsUntilEvent, end, status }, i) => {
     if (i < displayColumnCount) {
       if (
         i === 0 &&
@@ -196,11 +206,11 @@ async function checkCalendarEvents() {
         // It is the first found event and it has already started
         // Shift the led 1 to the right for the current meeting
         displayColumnCount++;
-        setLed(START_LED - 1, ...generateColor(milliSecondsUntilEvent));
+        setLed(START_LED - 1, ...generateColor(milliSecondsUntilEvent, status));
       } else {
         const index =
           displayColumnCount === INDIVIDUAL_EVENT_COLUMN_COUNT ? i : i - 1;
-        setLed(getLed(index), ...generateColor(milliSecondsUntilEvent));
+        setLed(getLed(index), ...generateColor(milliSecondsUntilEvent, status));
       }
     } else if (milliSecondsUntilEvent !== null) {
       pendingCounter++;
