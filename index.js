@@ -49,11 +49,10 @@ function generateColor(milliSecondsUntilEvent, status = 'accepted') {
   if (status === 'declined') {
     // Always return pink if declined
     return [205,92,92];
+  } else if (secondsUntilEvent > MINUTE * 10 && (status === 'tentative' || status === 'needsAction')) {
+    // Always return yellow if tentative
+    return [107,142,35];
   }
-  // else if (status === 'tentative' || status === 'needsAction') {
-  //   // Always return yellow if tentative
-  //   return [107,142,35];
-  // }
   if (secondsUntilEvent >= HOUR) {
     const totalIntervalInSeconds = FETCH_EVENTS_IN_NEXT_X_HOURS * 60 * 60;
     const remainingInterval = secondsUntilEvent / totalIntervalInSeconds;
