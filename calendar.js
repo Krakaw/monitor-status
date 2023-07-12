@@ -9,7 +9,7 @@ const SCOPES = ['https://www.googleapis.com/auth/calendar.readonly'];
 // time.
 const TOKEN_PATH = process.env.OAUTH_TOKEN_PATH;
 const CREDENTIALS_PATH = process.env.CREDENTIALS_PATH;
-
+const CALENDAR_IDS =( process.env.CALENDAR_IDS || 'primary').split(',');
 
 // Load client secrets from a local file.
 
@@ -75,16 +75,19 @@ async function listEventsAsync(auth, daysAgo = 0) {
     startOfDay.setDate(startOfDay.getDate() - daysAgo);
     startOfDay.setHours(0,0,0,0);
     const endOfDay = new Date(startOfDay);
-    endOfDay.setHours(23, 59,59,999)
-    const res = await calendar.events.list({
-        calendarId: 'primary',
-        timeMin: startOfDay.toISOString(),
-        timeMax: endOfDay.toISOString(),
-        maxResults: 100,
-        singleEvents: true,
-        orderBy: 'startTime',
-    });
-    const events = res.data.items;
+    endOfDay.setHours(23, 59, 59, 999)
+    let events = [];
+    for (const calendarId of CALENDAR_IDS) {
+        const res = await calendar.events.list({
+            calendarId,
+            timeMin: startOfDay.toISOString(),
+            timeMax: endOfDay.toISOString(),
+            maxResults: 100,
+            singleEvents: true,
+            orderBy: 'startTime',
+        });
+        events = events.concat(res.data.items);
+    }
     return events;
 
 }
