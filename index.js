@@ -169,7 +169,7 @@ async function checkCalendarEvents() {
   if (PICO_DEV) {
     const calEventsArray = dates.map((d) => {
       const result = { ...d };
-      result.summary = result.summary.replace(/[^\x00-\x7F]+/, "").trim();
+      result.summary = (result.summary || '').replace(/[^\x00-\x7F]+/, "").trim();
       // Must remove this so it stops changing on every request
       delete result.milliSecondsUntilEvent;
       return result;
